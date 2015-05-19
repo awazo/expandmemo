@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8" />
 <style type="text/css">
 * { padding: 0px; margin: 0px; }
 iframe {
@@ -13,6 +14,13 @@ iframe {
 <title>expandmemo</title>
 </head>
 <body>
-<iframe src="./expandmemo.html" frameborder="0" />
+<iframe id="myframe" src="./expandmemo.html" frameborder="0"></iframe>
+<script>
+//<![CDATA[
+var h = window.innerHeight || document.documentElement.clientHeight ||
+  document.body.clientHeight;
+document.getElementById("myframe").style.height=h+"px";
+//]]>
+</script>
 </body>
 </html>
