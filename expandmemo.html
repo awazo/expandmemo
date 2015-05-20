@@ -4,11 +4,55 @@
 <head>
 <meta charset="UTF-8" />
 <style type="text/css">
+* { padding: 0px; margin: 0px; }
+body { padding-top: 20px; }
 table {
   border: solid 1px black;
 }
 div.controls {
   text-align: right;
+}
+*.button {
+  background-color: transparent;
+}
+#menu {
+  z-index: 1;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+#menu ul {
+  float:left;
+  list-style: none;
+  padding: 0px;
+  margin: 0px;
+}
+#menu ul li {
+  float:left;
+  padding: 0px;
+  margin: 0px;
+}
+#menu ul li:not(.button) {
+  float:left;
+  padding: 0px 5px;
+  margin: 0px 2px;
+  background-color: rgb(71, 57, 70);
+  color: white;
+}
+#informations {
+  float:left;
+  padding: 0px 5px;
+  background-color: rgba(192, 192, 192, 0.3);
+}
+#popup {
+  z-index: 2;
+  background-color: rgba(128, 128, 128, 0.5);
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  text-align: center;
 }
 </style>
 <title>expandmemo</title>
@@ -23,7 +67,7 @@ div.controls {
 //<![CDATA[
 function onClickExpandButton(btn) {
   btn.style.display="none";
-  var shrinkBtn = btn.parentNode.getElementsByClassName('shrinkButton')[0];
+  var shrinkBtn = btn.parentNode.getElementsByClassName("shrinkButton")[0];
   shrinkBtn.style.display="inline";
   var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
   var tableParentNode = tableNode.parentNode;
@@ -33,7 +77,7 @@ function onClickExpandButton(btn) {
 }
 function onClickShrinkButton(btn) {
   btn.style.display="none";
-  var expandBtn = btn.parentNode.getElementsByClassName('expandButton')[0];
+  var expandBtn = btn.parentNode.getElementsByClassName("expandButton")[0];
   expandBtn.style.display="inline";
   var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
   var parentTableNode = tableNode.parentNode.parentNode.parentNode.parentNode;
@@ -47,20 +91,20 @@ function typeIs(type, obj) {
 }
 
 function getTemplateCopy() {
-  var tmpl = document.getElementById('_template').cloneNode(true);
+  var tmpl = document.getElementById("_template").cloneNode(true);
   tmpl.id = "";
   return tmpl;
 }
 
 function getTemplateTd(isCreateTemplate) {
-  var tdnode = document.createElement('TD');
-  tdnode.setAttribute('align', 'center');
-  tdnode.setAttribute('valign', 'center');
+  var tdnode = document.createElement("TD");
+  tdnode.setAttribute("align", "center");
+  tdnode.setAttribute("valign", "center");
   if(isCreateTemplate) tdnode.appendChild(getTemplateCopy());
   return tdnode;
 }
 function getTemplateTr(tdcount) {
-  var trnode = document.createElement('TR');
+  var trnode = document.createElement("TR");
   for(var i = 0; i < tdcount; i++) {
     var tdnode = getTemplateTd(true);
     trnode.appendChild(tdnode);
@@ -68,12 +112,12 @@ function getTemplateTr(tdcount) {
   return trnode;
 }
 function getExpanded(base) {
-  var tablenode = document.createElement('TABLE');
-  var tbodynode = document.createElement('TBODY');
+  var tablenode = document.createElement("TABLE");
+  var tbodynode = document.createElement("TBODY");
   tablenode.appendChild(tbodynode);
   tbodynode.appendChild(getTemplateTr(3));
   var centerTd = getTemplateTd(false);
-  if(typeIs('String', base)) {
+  if(typeIs("String", base)) {
     var tmpl = getTemplateCopy();
     var tmpltdnode = tmpl.children[0].children[0].children[0];
     tmpltdnode.getElementsByTagName('TEXTAREA')[0].value = base;
@@ -96,7 +140,7 @@ function getExpanded(base) {
 <td>
   <textarea rows="4" cols="18"></textarea>
   <div class="controls">
-    <span class="expandButton" style="display:inline"
+    <span class="expandButton button" style="display:inline"
       onclick="onClickExpandButton(this)">
       <svg width="28" height="28">
         <rect width="28" height="28"
@@ -113,7 +157,7 @@ function getExpanded(base) {
           style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
       </svg>
     </span>
-    <span class="shrinkButton" style="display:none"
+    <span class="shrinkButton button" style="display:none"
       onclick="onClickShrinkButton(this)">
       <svg width="28" height="28">
         <rect width="28" height="28"
@@ -136,10 +180,157 @@ function getExpanded(base) {
 </table>
 </div>
 
+<div id="menu">
+<ul>
+<!--
+<li id="menuItem" onclick="alert('menu item')">
+</li>
+-->
+<li id="startNewMenuItem" onclick="onClickStartNewMenuItem()">
+start new
+</li>
+<!--
+<li id="hogeMenuItem" onclick="displayPopup('hoge')">
+openHoge
+</li>
+<li id="fugaMenuItem" onclick="displayPopup('fuga')">
+openFuga
+</li>
+-->
+<li id="closeMenuButton" class="button"
+  onclick="onClickCloseMenuButton(this, false)">
+  <svg width="12" height="22">
+    <rect width="12" height="22"
+      style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
+    <polyline points="12,0 12,22 0,22"
+      style="fill:none;stroke:rgb(128,128,128);stroke-width:2" />
+    <polyline points="6,3 1,11 6,19"
+      style="fill:none;stroke:black;stroke-width:1" />
+    <polyline points="10,3 5,11 10,19"
+      style="fill:none;stroke:black;stroke-width:1" />
+  </svg>
+</li>
+<li id="openMenuButton" class="button"
+  onclick="onClickOpenMenuButton(this, true)">
+  <svg width="12" height="22">
+    <rect width="12" height="22"
+      style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
+    <polyline points="12,0 12,22 0,22"
+      style="fill:none;stroke:rgb(128,128,128);stroke-width:2" />
+    <polyline points="1,3 6,11 1,19"
+      style="fill:none;stroke:black;stroke-width:1" />
+    <polyline points="5,3 10,11 5,19"
+      style="fill:none;stroke:black;stroke-width:1" />
+  </svg>
+</li>
+</ul>
+<div id="informations">
+&lt;-- click this button to open menu.
+</div>
+</div>
+
+<script>
+//<![CDATA[
+function onClickOpenMenuButton(btn, isClearInfo) {
+  var menuUl = btn.parentNode;
+  for(var i = 0; i < menuUl.children.length; i++) {
+    menuUl.children[i].style.display="inline";
+  }
+  menuUl.children[menuUl.children.length - 1].style.display="none";
+  menuUl.style.marginLeft = "2px";
+  if(isClearInfo) clearInformation();
+}
+function onClickCloseMenuButton(btn, isClearInfo) {
+  var menuUl = btn.parentNode;
+  for(var i = 0; i < menuUl.children.length; i++) {
+    menuUl.children[i].style.display="none";
+  }
+  menuUl.children[menuUl.children.length - 1].style.display="inline";
+  menuUl.style.marginLeft = "0px";
+  if(isClearInfo) clearInformation();
+}
+
+function onClickStartNewMenuItem() {
+  onClickCloseMenuButton(document.getElementById("closeMenuButton"), true);
+  var memoRoot = document.getElementById("_expandmemo");
+  for(var i = memoRoot.childNodes.length - 1; i >= 0; i--)
+    memoRoot.removeChild(memoRoot.childNodes[i]);
+  memoRoot.appendChild(getTemplateCopy());
+}
+
+function clearInformation() {
+  var infoNode = document.getElementById("informations");
+  for(var i = infoNode.childNodes.length - 1; i >= 0; i--)
+    infoNode.removeChild(infoNode.childNodes[i]);
+}
+function addInformation(info) {
+  var infoNode = document.getElementById("informations");
+  if(typeIs("String", info)) {
+    infoNode.appendChild(document.createElement("BR"));
+    infoNode.appendChild(document.createTextNode(info));
+  } else infoNode.appendChild(info);
+}
+//]]>
+</script>
+
+<div id="popup" style="display:none">
+  <div id="closePopupButton" class="button">
+    <svg width="20" height="20" onclick="closePopup()">
+      <rect width="20" height="20"
+        style="fill:black;stroke:black;stroke-width:0" />
+      <line x1="4" y1="4" x2="16" y2="16"
+        style="fill:none;stroke:white;stroke-width:3" />
+      <line x1="16" y1="4" x2="4" y2="16"
+        style="fill:none;stroke:white;stroke-width:3" />
+    </svg>
+  </div>
+  <span id="hoge">hogehogehogehogehogehoge</span>
+  <span id="fuga">fugaaaaaaaaaaaaaaaaaaaaaaaaaaa</span>
+</div>
+
+<script>
+//<![CDATA[
+function displayPopup(nodeId) {
+  var popupNode = document.getElementById("popup");
+  popupNode.style.display = "block";
+  for(var i = 0; i < popupNode.children.length; i++)
+    if(popupNode.children[i].id !== "closePopupButton")
+      popupNode.children[i].style.display = "none";
+
+  var closeButton = document.getElementById("closePopupButton");
+  closeButton.style.paddingLeft = (popupNode.clientWidth / 3) + "px";
+  var content = document.getElementById(nodeId);
+  var contentHeight = 0;
+  if((content !== undefined) || (content !== null)) {
+    content.style.display = "block";
+    contentHeight = closeButton.clientHeight + content.clientHeight;
+  } else contentHeight = closeButton.clientHeight;
+  var topPadding = (popupNode.clientHeight - contentHeight) / 2;
+  popupNode.style.paddingTop = topPadding + "px";
+}
+function closePopup() {
+  var popupNode = document.getElementById("popup");
+  popupNode.style.display = "none";
+}
+//]]>
+</script>
+
+<script>
+//<![CDATA[
+/*** data structure ***/
+function memoData() {
+  this.parentMemo = null;
+  this.childrenMemo = [];
+  this.memoText = "";
+  this.memoNode = null;
+}
+//]]>
+</script>
+
 <script>
 //<![CDATA[
 /*** initialize ***/
-document.getElementById('_expandmemo').appendChild(getTemplateCopy());
+onClickCloseMenuButton(document.getElementById("closeMenuButton"), false);
 //]]>
 </script>
 
