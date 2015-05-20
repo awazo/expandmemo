@@ -1,49 +1,149 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 <meta charset="UTF-8" />
+<style type="text/css">
+table {
+  border: solid 1px black;
+}
+div.controls {
+  text-align: right;
+}
+</style>
 <title>expandmemo</title>
 </head>
+
 <body>
-this is expandmemo page.  under constructions...
-<table>
-<tbody>
-<tr><td>
+
+<div id="_expandmemo">
+</div>
+
+<script>
+//<![CDATA[
+function onClickExpandButton(btn) {
+  btn.style.display="none";
+  var shrinkBtn = btn.parentNode.getElementsByClassName('shrinkButton')[0];
+  shrinkBtn.style.display="inline";
+  var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
+  var tableParentNode = tableNode.parentNode;
+  tableParentNode.removeChild(tableNode);
+  var expanded = getExpanded(tableNode);
+  tableParentNode.appendChild(expanded);
+}
+function onClickShrinkButton(btn) {
+  btn.style.display="none";
+  var expandBtn = btn.parentNode.getElementsByClassName('expandButton')[0];
+  expandBtn.style.display="inline";
+  var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
+  var parentTableNode = tableNode.parentNode.parentNode.parentNode.parentNode;
+  var parentTableNodeParent = parentTableNode.parentNode;
+  parentTableNodeParent.removeChild(parentTableNode);
+  parentTableNodeParent.appendChild(tableNode);
+}
+
+function typeIs(type, obj) {
+  return (obj.constructor.toString().indexOf(type) > -1);
+}
+
+function getTemplateCopy() {
+  var tmpl = document.getElementById('_template').cloneNode(true);
+  tmpl.id = "";
+  return tmpl;
+}
+
+function getTemplateTd(isCreateTemplate) {
+  var tdnode = document.createElement('TD');
+  tdnode.setAttribute('align', 'center');
+  tdnode.setAttribute('valign', 'center');
+  if(isCreateTemplate) tdnode.appendChild(getTemplateCopy());
+  return tdnode;
+}
+function getTemplateTr(tdcount) {
+  var trnode = document.createElement('TR');
+  for(var i = 0; i < tdcount; i++) {
+    var tdnode = getTemplateTd(true);
+    trnode.appendChild(tdnode);
+  }
+  return trnode;
+}
+function getExpanded(base) {
+  var tablenode = document.createElement('TABLE');
+  var tbodynode = document.createElement('TBODY');
+  tablenode.appendChild(tbodynode);
+  tbodynode.appendChild(getTemplateTr(3));
+  var centerTd = getTemplateTd(false);
+  if(typeIs('String', base)) {
+    var tmpl = getTemplateCopy();
+    var tmpltdnode = tmpl.children[0].children[0].children[0];
+    tmpltdnode.getElementsByTagName('TEXTAREA')[0].value = base;
+    centerTd.appendChild(tmpl);
+  } else centerTd.appendChild(base);
+  var centerTr = getTemplateTr(2);
+  centerTr.insertBefore(centerTd, centerTr.lastChild);
+  tbodynode.appendChild(centerTr);
+  tbodynode.appendChild(getTemplateTr(3));
+  return tablenode;
+}
+//]]>
+</script>
+
+
+<!-- template -->
+<div style="display:none">
+<table id="_template">
+<tbody><tr>
+<td>
   <textarea rows="4" cols="18"></textarea>
   <div class="controls">
-    <svg width="28" height="28" onclick="alert('to expand')">
-      <rect width="28" height="28"
-        style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
-      <polyline points="28,0 28,28 0,28"
-        style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
-      <path d="M 4 4 L 12 4 L 12 6 Q 6 5 13 12 L 12 15 Q 5 6 6 12 L 4 12 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      <path d="M 24 4 L 24 12 L 22 12 Q 23 6 16 13 L 15 12 Q 22 5 16 6 L 16 4 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      <path d="M 24 24 L 16 24 L 16 22 Q 22 23 15 16 L 16 15 Q 23 22 22 16 L 24 16 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      <path d="M 4 24 L 4 16 L 6 16 Q 5 22 12 15 L 13 16 Q 6 23 12 22 L 12 24 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-    </svg>
-// TODO: design shrink button ->
-    <svg width="28" height="28" onclick="alert('to shrink')">
-      <rect width="28" height="28"
-        style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
-      <polyline points="28,0 28,28 0,28"
-        style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
-      <path d="M 4 4 L 12 4 L 12 6 Q 6 5 13 12 L 12 15 Q 5 6 6 12 L 4 12 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      <path d="M 24 4 L 24 12 L 22 12 Q 23 6 16 13 L 15 12 Q 22 5 16 6 L 16 4 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      <path d="M 24 24 L 16 24 L 16 22 Q 22 23 15 16 L 16 15 Q 23 22 22 16 L 24 16 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      <path d="M 4 24 L 4 16 L 6 16 Q 5 22 12 15 L 13 16 Q 6 23 12 22 L 12 24 Z"
-        style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-    </svg>
+    <span class="expandButton" style="display:inline"
+      onclick="onClickExpandButton(this)">
+      <svg width="28" height="28">
+        <rect width="28" height="28"
+          style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
+        <polyline points="28,0 28,28 0,28"
+          style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
+        <path d="M 4 4 L 12 4 L 12 6 Q 6 5 13 12 L 12 15 Q 5 6 6 12 L 4 12 Z"
+          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+        <path d="M 24 4 L 24 12 L 22 12 Q 23 6 16 13 L 15 12 Q 22 5 16 6 L 16 4 Z"
+          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+        <path d="M 24 24 L 16 24 L 16 22 Q 22 23 15 16 L 16 15 Q 23 22 22 16 L 24 16 Z"
+          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+        <path d="M 4 24 L 4 16 L 6 16 Q 5 22 12 15 L 13 16 Q 6 23 12 22 L 12 24 Z"
+          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+      </svg>
+    </span>
+    <span class="shrinkButton" style="display:none"
+      onclick="onClickShrinkButton(this)">
+      <svg width="28" height="28">
+        <rect width="28" height="28"
+          style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
+        <polyline points="28,0 28,28 0,28"
+          style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
+        <path d="M 4 4 L 5 4 Q 11 11 10 5 L 11 5 L 13 13 L 5 11 L 5 10 Q 11 11 4 5 Z"
+          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+        <path d="M 24 4 L 24 5 Q 17 11 23 10 L 23 11 L 15 13 L 17 5 L 18 5 Q 17 11 23 4 Z"
+          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+        <path d="M 24 24 L 23 24 Q 17 17 18 23 L 17 23 L 15 15 L 23 17 L 23 18 Q 17 17 24 23 Z"
+          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+        <path d="M 4 24 L 4 23 Q 11 17 5 18 L 5 17 L 11 15 L 11 23 L 10 23 Q 11 17 5 24 Z"
+          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+      </svg>
+    </span>
   </div>
-</td></tr>
-</tbody>
+</td>
+</tr></tbody>
 </table>
+</div>
+
+<script>
+//<![CDATA[
+/*** initialize ***/
+document.getElementById('_expandmemo').appendChild(getTemplateCopy());
+//]]>
+</script>
+
 </body>
 
+</html>
 
