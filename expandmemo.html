@@ -271,14 +271,19 @@ function clearChildNodes(node) {
 }
 
 function onClickStartNewMenuItem() {
-  displayPopup("messageBox", "if you start new, DELETE current memo data.",
-    {"OK": function(){
-             var closeBtn = document.getElementById("closeMenuButton");
-             onClickCloseMenuButton(closeBtn, true);
-             var memoRoot = document.getElementById("_expandmemo");
-             clearChildNodes(memoRoot);
-             memoRoot.appendChild(getTemplateCopy());
-           }});
+  var doStartNewFunc =
+    function(){
+      var closeBtn = document.getElementById("closeMenuButton");
+      onClickCloseMenuButton(closeBtn, true);
+      var memoRoot = document.getElementById("_expandmemo");
+      clearChildNodes(memoRoot);
+      memoRoot.appendChild(getTemplateCopy());
+    };
+  var memoRoot = document.getElementById("_expandmemo");
+  if(memoRoot.children.length > 0)
+    displayPopup("messageBox", "if you start new, DELETE current memo data.",
+      {"OK": doStartNewFunc});
+  else doStartNewFunc();
 }
 
 function clearInformation() {
