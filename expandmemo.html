@@ -33,7 +33,6 @@ div.controls {
   margin: 0px;
 }
 #menu ul li:not(.button) {
-  float:left;
   padding: 0px 5px;
   margin: 0px 2px;
   background-color: rgb(71, 57, 70);
@@ -53,6 +52,30 @@ div.controls {
   width: 100%;
   height: 100%;
   text-align: center;
+  flex-flow: column wrap;
+  align-items: center;
+}
+#closePopupButton {
+  margin-top: -50px;
+  margin-bottom: 30px;
+}
+#messageBox div.messageArea {
+  background-color: white;
+  padding: 5px 10px;
+}
+#messageBox div.controls {
+}
+#messageBox div.controls ul {
+  list-style: none;
+  padding: 0px;
+  margin: 0px;
+}
+#messageBox div.controls ul li {
+  display: inline;
+  padding: 0px 5px;
+  margin: 0px 2px;
+  background-color: rgb(71, 57, 70);
+  color: white;
 }
 </style>
 <title>expandmemo</title>
@@ -189,14 +212,6 @@ function getExpanded(base) {
 <li id="startNewMenuItem" onclick="onClickStartNewMenuItem()">
 start new
 </li>
-<!--
-<li id="hogeMenuItem" onclick="displayPopup('hoge')">
-openHoge
-</li>
-<li id="fugaMenuItem" onclick="displayPopup('fuga')">
-openFuga
-</li>
--->
 <li id="closeMenuButton" class="button"
   onclick="onClickCloseMenuButton(this, false)">
   <svg width="12" height="22">
@@ -250,18 +265,24 @@ function onClickCloseMenuButton(btn, isClearInfo) {
   if(isClearInfo) clearInformation();
 }
 
+function clearChildNodes(node) {
+  for(var i = node.childNodes.length - 1; i >= 0; i--)
+    node.removeChild(node.childNodes[i]);
+}
+
 function onClickStartNewMenuItem() {
-  onClickCloseMenuButton(document.getElementById("closeMenuButton"), true);
-  var memoRoot = document.getElementById("_expandmemo");
-  for(var i = memoRoot.childNodes.length - 1; i >= 0; i--)
-    memoRoot.removeChild(memoRoot.childNodes[i]);
-  memoRoot.appendChild(getTemplateCopy());
+  displayPopup("messageBox", "if you start new, DELETE current memo data.",
+    {"OK": function(){
+             var closeBtn = document.getElementById("closeMenuButton");
+             onClickCloseMenuButton(closeBtn, true);
+             var memoRoot = document.getElementById("_expandmemo");
+             clearChildNodes(memoRoot);
+             memoRoot.appendChild(getTemplateCopy());
+           }});
 }
 
 function clearInformation() {
-  var infoNode = document.getElementById("informations");
-  for(var i = infoNode.childNodes.length - 1; i >= 0; i--)
-    infoNode.removeChild(infoNode.childNodes[i]);
+  clearChildNodes(document.getElementById("informations"));
 }
 function addInformation(info) {
   var infoNode = document.getElementById("informations");
@@ -284,15 +305,17 @@ function addInformation(info) {
         style="fill:none;stroke:white;stroke-width:3" />
     </svg>
   </div>
-  <span id="hoge">hogehogehogehogehogehoge</span>
-  <span id="fuga">fugaaaaaaaaaaaaaaaaaaaaaaaaaaa</span>
+  <div id="messageBox">
+    <div class="messageArea"></div>
+    <div class="controls"><ul></ul></div>
+  </div>
 </div>
 
 <script>
 //<![CDATA[
-function displayPopup(nodeId) {
+function displayPopup(nodeId, msg, ctrls) {
   var popupNode = document.getElementById("popup");
-  popupNode.style.display = "block";
+  popupNode.style.display = "flex";
   for(var i = 0; i < popupNode.children.length; i++)
     if(popupNode.children[i].id !== "closePopupButton")
       popupNode.children[i].style.display = "none";
@@ -302,6 +325,7 @@ function displayPopup(nodeId) {
   var content = document.getElementById(nodeId);
   var contentHeight = 0;
   if((content !== undefined) || (content !== null)) {
+    if(nodeId === "messageBox") setupMessageBox(content, msg, ctrls);
     content.style.display = "block";
     contentHeight = closeButton.clientHeight + content.clientHeight;
   } else contentHeight = closeButton.clientHeight;
@@ -311,6 +335,20 @@ function displayPopup(nodeId) {
 function closePopup() {
   var popupNode = document.getElementById("popup");
   popupNode.style.display = "none";
+  popupNode.style.paddingTop = "0px";
+}
+function setupMessageBox(msgBoxNode, msg, ctrls) {
+  msgBoxNode.getElementsByClassName("messageArea")[0].innerHTML = msg;
+  var msgBoxCtrlsNode = msgBoxNode.getElementsByClassName("controls")[0];
+  var ctrlUl = msgBoxCtrlsNode.getElementsByTagName("UL")[0];
+  clearChildNodes(ctrlUl);
+  for(var ctrlCap in ctrls) {
+    var ctrlLi = document.createElement("LI");
+    ctrlLi.innerHTML = ctrlCap;
+    ctrlLi.addEventListener("click",
+      function() { ctrls[ctrlCap](); closePopup(); });
+    ctrlUl.appendChild(ctrlLi);
+  }
 }
 //]]>
 </script>
