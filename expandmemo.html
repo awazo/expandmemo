@@ -318,11 +318,29 @@ function closePopup() {
 <script>
 //<![CDATA[
 /*** data structure ***/
-function memoData() {
-  this.parentMemo = null;
+function memoData(parentData) {
+  this.parentMemo = parentData;
   this.childrenMemo = [];
   this.memoText = "";
   this.memoNode = null;
+  this.toJsonString = function() {
+    var childrenJson = "";
+    for(var i = 0; i < this.childrenMemo.length; i++) {
+      childrenJson += this.childrenMemo[i].toJsonString();
+      if(i < (this.childrenMemo.length - 1))
+        childrenJson += ", ";
+    }
+    return "{'memoText': '" + this.memoText +
+      "', 'childrenMemo': [" + childrenJson + "]}";
+  };
+  this.fromJsonObject = function(jsonObject) {
+    this.memoText = jsonObject.memoText;
+    for(var i = 0; i < jsonObject.childrenMemo.length; i++) {
+      var child = new memoData(this);
+      this.childrenMemo.push(child.fromJsonObject(jsonObject.childrenMemo[i]));
+    }
+    return this;
+  };
 }
 //]]>
 </script>
