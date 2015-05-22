@@ -113,10 +113,20 @@ function typeIs(type, obj) {
 
 <script>
 //<![CDATA[
-function onClickTileExpandButton(btn) {
-  btn.style.display = "none";
-  var shrinkBtn = btn.parentNode.getElementsByClassName("shrinkButton")[0];
+function switchTileButtonToShrink(expandBtn) {
+  expandBtn.style.display = "none";
+  var controls = expandBtn.parentNode;
+  var shrinkBtn = controls.getElementsByClassName("shrinkButton")[0];
   shrinkBtn.style.display = "inline";
+}
+function switchTileButtonToExpand(shrinkBtn) {
+  shrinkBtn.style.display = "none";
+  var controls = shrinkBtn.parentNode;
+  var expandBtn = controls.getElementsByClassName("expandButton")[0];
+  expandBtn.style.display = "inline";
+}
+function onClickTileExpandButton(btn) {
+  switchTileButtonToShrink(btn);
   var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
   var tableParentNode = tableNode.parentNode;
   tableParentNode.removeChild(tableNode);
@@ -124,9 +134,7 @@ function onClickTileExpandButton(btn) {
   tableParentNode.appendChild(expanded);
 }
 function onClickTileShrinkButton(btn) {
-  btn.style.display = "none";
-  var expandBtn = btn.parentNode.getElementsByClassName("expandButton")[0];
-  expandBtn.style.display = "inline";
+  switchTileButtonToExpand(btn);
   var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
   var parentTableNode = tableNode.parentNode.parentNode.parentNode.parentNode;
   var parentTableNodeParent = parentTableNode.parentNode;
@@ -134,17 +142,19 @@ function onClickTileShrinkButton(btn) {
   parentTableNodeParent.appendChild(tableNode);
 }
 
+function switchListButtonToShrink(expandBtn) {
+  switchTileButtonToShrink(expandBtn);
+}
+function switchListButtonToExpand(shrinkBtn) {
+  switchTileButtonToExpand(shrinkBtn);
+}
 function onClickListExpandButton(btn) {
-  btn.style.display = "none";
-  var shrinkBtn = btn.parentNode.getElementsByClassName("shrinkButton")[0];
-  shrinkBtn.style.display = "inline";
+  switchListButtonToShrink(btn);
   var liNode = btn.parentNode.parentNode.parentNode;
   getListExpanded(liNode);
 }
 function onClickListShrinkButton(btn) {
-  btn.style.display = "none";
-  var expandBtn = btn.parentNode.getElementsByClassName("expandButton")[0];
-  expandBtn.style.display = "inline";
+  switchListButtonToExpand(btn);
   var liNode = btn.parentNode.parentNode.parentNode;
   liNode.removeChild(liNode.getElementsByTagName("OL")[0]);
 }
@@ -348,6 +358,11 @@ function setModeToTile() {
   var listRoot = document.getElementById("_listModeRoot");
   tileRoot.style.display = "block";
   listRoot.style.display = "none";
+  var listMemoData = getMemoDataFromListMode();
+  if(listMemoData !== null) {
+    clearChildNodes(tileRoot);
+    tileRoot.appendChild(getTileFromMemoData(listMemoData));
+  }
 }
 function setModeToList() {
   var modeNode = document.getElementById("mode");
@@ -358,6 +373,11 @@ function setModeToList() {
   var listRoot = document.getElementById("_listModeRoot");
   tileRoot.style.display = "none";
   listRoot.style.display = "block";
+  var tileMemoData = getMemoDataFromTileMode();
+  if(tileMemoData !== null) {
+    clearChildNodes(listRoot);
+    listRoot.appendChild(getListFromMemoData(tileMemoData));
+  }
 }
 function modeClass(modeIdString, modeRootNodeDom) {
   this.modeId = modeIdString;
@@ -511,27 +531,147 @@ function setupMessageBox(msgBoxNode, msg, ctrls) {
 /*** data structure ***/
 function memoData(parentData) {
   this.parentMemo = parentData;
-  this.childrenMemo = [];
+  this.childMemoArray = [];
   this.memoText = "";
-  this.memoNode = null;
+  this.hasChild = function() { return (this.childMemoArray.length > 0); };
   this.toJsonString = function() {
     var childrenJson = "";
-    for(var i = 0; i < this.childrenMemo.length; i++) {
-      childrenJson += this.childrenMemo[i].toJsonString();
-      if(i < (this.childrenMemo.length - 1))
+    for(var i = 0; i < this.childMemoArray.length; i++) {
+      childrenJson += this.childMemoArray[i].toJsonString();
+      if(i < (this.childMemoArray.length - 1))
         childrenJson += ", ";
     }
     return "{'memoText': '" + this.memoText +
-      "', 'childrenMemo': [" + childrenJson + "]}";
+      "', 'childMemoArray': [" + childrenJson + "]}";
   };
   this.fromJsonObject = function(jsonObject) {
     this.memoText = jsonObject.memoText;
-    for(var i = 0; i < jsonObject.childrenMemo.length; i++) {
+    for(var i = 0; i < jsonObject.childMemoArray.length; i++) {
       var child = new memoData(this);
-      this.childrenMemo.push(child.fromJsonObject(jsonObject.childrenMemo[i]));
+      child.fromJsonObject(jsonObject.childMemoArray[i]);
+      this.childMemoArray.push(child);
     }
     return this;
   };
+}
+
+function hasTileChild(tileNode) {
+  return (tileNode.children[0].children.length > 1);
+}
+function getTileChildren(tileNode) {
+  var children = [];
+  var tbodyNode = tileNode.children[0];
+  for(var i = 0; i < tbodyNode.children.length; i++) {
+    var tileTr = tbodyNode.children[i];
+    for(var j = 0; j < tileTr.children.length; j++) {
+      if((i === 1) && (j === 1)) continue;
+      children.push(tileTr.children[j].children[0]);
+    }
+  }
+  return children;
+}
+function getTileTextNode(tileNode) {
+  var tileTd;
+  if(hasTileChild(tileNode)) {
+    tileTd = tileNode.children[0].children[1].children[1];
+  } else tileTd = tileNode.children[0].children[0].children[0];
+  return tileTd.getElementsByTagName("TEXTAREA")[0];
+}
+function getMemoDataFromTileMode() {
+  var tileRoot = document.getElementById("_tileModeRoot");
+  if(tileRoot.children.length <= 0) return null;
+  var walkTileTree = function(tileNode) {
+    var memoNode = new memoData(null);
+    memoNode.memoText = getTileTextNode(tileNode).value;
+    if(hasTileChild(tileNode)) {
+      var childArr = getTileChildren(tileNode);
+      for(var i = 0; i < childArr.length; i++) {
+        var childMemo = walkTileTree(childArr[i]);
+        childMemo.parentMemo = memoNode;
+        memoNode.childMemoArray.push(childMemo);
+      }
+    }
+    return memoNode;
+  };
+  return walkTileTree(tileRoot.children[0]);
+}
+function getTileExpandButton(tileNode) {
+  var tileTd;
+  if(hasTileChild(tileNode)) {
+    tileTd = tileNode.children[0].children[1].children[1];
+  } else tileTd = tileNode.children[0].children[0].children[0];
+  var tileControls = tileTd.getElementsByClassName("controls")[0];
+  return tileControls.getElementsByClassName("expandButton")[0];
+}
+function getTileFromMemoData(memoData) {
+  if((memoData === undefined) || (memoData === null)) return null;
+  var tileRoot = getTileTemplateCopy();
+  getTileTextNode(tileRoot).value = memoData.memoText;
+  if(memoData.hasChild()) {
+    switchTileButtonToShrink(getTileExpandButton(tileRoot));
+    tileRoot = getTileExpanded(tileRoot);
+    var children = getTileChildren(tileRoot);
+    for(var i = 0; i < children.length; i++) {
+      if(i >= memoData.childMemoArray.length) break;
+      var holder = children[i].parentNode;
+      clearChildNodes(holder);
+      holder.appendChild(getTileFromMemoData(memoData.childMemoArray[i]));
+    }
+  }
+  return tileRoot;
+}
+
+function hasListChild(listNode) {
+  return (listNode.getElementsByTagName("OL").length > 0);
+}
+function getListChildren(listNode) {
+  return listNode.getElementsByTagName("OL")[0].children;
+}
+function getListTextNode(listNode) {
+  var spanNode = listNode.getElementsByTagName("SPAN")[0];
+  return spanNode.getElementsByTagName("TEXTAREA")[0];
+}
+function getMemoDataFromListMode() {
+  var listRoot = document.getElementById("_listModeRoot");
+  if(listRoot.children.length <= 0) return null;
+  var walkListTree = function(listNode) {
+    var memoNode = new memoData(null);
+    memoNode.memoText = getListTextNode(listNode).value;
+    if(hasListChild(listNode)) {
+      var childArr = getListChildren(listNode);
+      for(var i = 0; i < childArr.length; i++) {
+        var childMemo = walkListTree(childArr[i]);
+        childMemo.parentMemo = memoNode;
+        memoNode.childMemoArray.push(childMemo);
+      }
+    }
+    return memoNode;
+  };
+  return walkListTree(listRoot.children[0].children[0]);
+}
+function getListExpandButton(listNode) {
+  var spanNode = listNode.getElementsByTagName("SPAN")[0];
+  var listControls = spanNode.getElementsByClassName("controls")[0];
+  return listControls.getElementsByClassName("expandButton")[0];
+}
+function getListFromMemoData(memoData) {
+  if((memoData === undefined) || (memoData === null)) return null;
+  var listRoot = getListTemplateCopy();
+  var walkListTree = function(listNode, memoNode) {
+    getListTextNode(listNode).value = memoNode.memoText;
+    if(memoNode.hasChild()) {
+      switchListButtonToShrink(getListExpandButton(listNode));
+      getListExpanded(listNode);
+      var children = getListChildren(listNode);
+      for(var i = 0; i < children.length; i++) {
+        if(i >= memoNode.childMemoArray.length) break;
+        walkListTree(children[i], memoNode.childMemoArray[i]);
+      }
+    }
+    return listNode;
+  };
+  walkListTree(listRoot.children[0], memoData);
+  return listRoot;
 }
 //]]>
 </script>
@@ -541,6 +681,7 @@ function memoData(parentData) {
 /*** initialize ***/
 setModeToTile();
 onClickCloseMenuButton(document.getElementById("closeMenuButton"), false);
+onClickStartNewMenuItem();
 //]]>
 </script>
 
