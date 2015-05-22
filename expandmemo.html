@@ -681,7 +681,9 @@ function getListFromMemoData(memoData) {
 /*** initialize ***/
 setModeToTile();
 onClickCloseMenuButton(document.getElementById("closeMenuButton"), false);
-onClickStartNewMenuItem();
+var mode = getCurrentMode();
+clearChildNodes(mode.memoRootNode);
+mode.memoRootNode.appendChild(mode.getTemplate());
 //]]>
 </script>
 
