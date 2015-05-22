@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8" />
 <style type="text/css">
-* { padding: 0px; margin: 0px; }
+*:not(ol) { padding: 0px; margin: 0px; }
 body { padding-top: 20px; }
 table {
   border: solid 1px black;
@@ -15,11 +15,24 @@ div.controls {
 *.button {
   background-color: transparent;
 }
-#menu {
+ol {
+  list-style: decimal outside;
+}
+#mode {
   z-index: 1;
-  position: absolute;
+  position: fixed;
   top: 0px;
   left: 0px;
+  width: 40px;
+  height: 22px;
+  text-align: center;
+  color: white;
+}
+#menu {
+  z-index: 1;
+  position: fixed;
+  top: 0px;
+  left: 40px;
 }
 #menu ul {
   float:left;
@@ -31,6 +44,7 @@ div.controls {
   float:left;
   padding: 0px;
   margin: 0px;
+  height: 22px;
 }
 #menu ul li:not(.button) {
   padding: 0px 5px;
@@ -63,8 +77,6 @@ div.controls {
   background-color: white;
   padding: 5px 10px;
 }
-#messageBox div.controls {
-}
 #messageBox div.controls ul {
   list-style: none;
   padding: 0px;
@@ -84,24 +96,37 @@ div.controls {
 <body>
 
 <div id="_expandmemo">
+  <div id="_tileModeRoot">
+  </div>
+  <div id="_listModeRoot">
+  </div>
 </div>
 
 <script>
 //<![CDATA[
-function onClickExpandButton(btn) {
-  btn.style.display="none";
+/*** utilities ***/
+function typeIs(type, obj) {
+  return (obj.constructor.toString().indexOf(type) > -1);
+}
+//]]>
+</script>
+
+<script>
+//<![CDATA[
+function onClickTileExpandButton(btn) {
+  btn.style.display = "none";
   var shrinkBtn = btn.parentNode.getElementsByClassName("shrinkButton")[0];
-  shrinkBtn.style.display="inline";
+  shrinkBtn.style.display = "inline";
   var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
   var tableParentNode = tableNode.parentNode;
   tableParentNode.removeChild(tableNode);
-  var expanded = getExpanded(tableNode);
+  var expanded = getTileExpanded(tableNode);
   tableParentNode.appendChild(expanded);
 }
-function onClickShrinkButton(btn) {
-  btn.style.display="none";
+function onClickTileShrinkButton(btn) {
+  btn.style.display = "none";
   var expandBtn = btn.parentNode.getElementsByClassName("expandButton")[0];
-  expandBtn.style.display="inline";
+  expandBtn.style.display = "inline";
   var tableNode = btn.parentNode.parentNode.parentNode.parentNode.parentNode;
   var parentTableNode = tableNode.parentNode.parentNode.parentNode.parentNode;
   var parentTableNodeParent = parentTableNode.parentNode;
@@ -109,100 +134,155 @@ function onClickShrinkButton(btn) {
   parentTableNodeParent.appendChild(tableNode);
 }
 
-function typeIs(type, obj) {
-  return (obj.constructor.toString().indexOf(type) > -1);
+function onClickListExpandButton(btn) {
+  btn.style.display = "none";
+  var shrinkBtn = btn.parentNode.getElementsByClassName("shrinkButton")[0];
+  shrinkBtn.style.display = "inline";
+  var liNode = btn.parentNode.parentNode.parentNode;
+  getListExpanded(liNode);
+}
+function onClickListShrinkButton(btn) {
+  btn.style.display = "none";
+  var expandBtn = btn.parentNode.getElementsByClassName("expandButton")[0];
+  expandBtn.style.display = "inline";
+  var liNode = btn.parentNode.parentNode.parentNode;
+  liNode.removeChild(liNode.getElementsByTagName("OL")[0]);
 }
 
-function getTemplateCopy() {
-  var tmpl = document.getElementById("_template").cloneNode(true);
+function setControls(controlsNode) {
+  var expandNode = controlsNode.getElementsByClassName("expandButton")[0];
+  var expandImg = document.getElementById("_expandButtonImg").cloneNode(true);
+  expandImg.id = "";
+  expandNode.appendChild(expandImg);
+  var shrinkNode = controlsNode.getElementsByClassName("shrinkButton")[0];
+  var shrinkImg = document.getElementById("_shrinkButtonImg").cloneNode(true);
+  shrinkImg.id = "";
+  shrinkNode.appendChild(shrinkImg);
+}
+function getTileTemplateCopy() {
+  var tmpl = document.getElementById("_tileTemplate").cloneNode(true);
   tmpl.id = "";
+  var tmplTd = tmpl.children[0].children[0].children[0];
+  setControls(tmplTd.getElementsByClassName("controls")[0]);
+  return tmpl;
+}
+function getListTemplateCopy() {
+  var tmpl = document.getElementById("_listTemplate").cloneNode(true);
+  tmpl.id = "";
+  var tmplLi = tmpl.children[0];
+  setControls(tmplLi.getElementsByClassName("controls")[0]);
   return tmpl;
 }
 
-function getTemplateTd(isCreateTemplate) {
+function getTileTemplateTd(isCreateTemplate) {
   var tdnode = document.createElement("TD");
   tdnode.setAttribute("align", "center");
   tdnode.setAttribute("valign", "center");
-  if(isCreateTemplate) tdnode.appendChild(getTemplateCopy());
+  if(isCreateTemplate) tdnode.appendChild(getTileTemplateCopy());
   return tdnode;
 }
-function getTemplateTr(tdcount) {
+function getTileTemplateTr(tdcount) {
   var trnode = document.createElement("TR");
   for(var i = 0; i < tdcount; i++) {
-    var tdnode = getTemplateTd(true);
+    var tdnode = getTileTemplateTd(true);
     trnode.appendChild(tdnode);
   }
   return trnode;
 }
-function getExpanded(base) {
+function getTileExpanded(base) {
   var tablenode = document.createElement("TABLE");
   var tbodynode = document.createElement("TBODY");
   tablenode.appendChild(tbodynode);
-  tbodynode.appendChild(getTemplateTr(3));
-  var centerTd = getTemplateTd(false);
+  tbodynode.appendChild(getTileTemplateTr(3));
+  var centerTd = getTileTemplateTd(false);
   if(typeIs("String", base)) {
-    var tmpl = getTemplateCopy();
+    var tmpl = getTileTemplateCopy();
     var tmpltdnode = tmpl.children[0].children[0].children[0];
     tmpltdnode.getElementsByTagName('TEXTAREA')[0].value = base;
     centerTd.appendChild(tmpl);
   } else centerTd.appendChild(base);
-  var centerTr = getTemplateTr(2);
+  var centerTr = getTileTemplateTr(2);
   centerTr.insertBefore(centerTd, centerTr.lastChild);
   tbodynode.appendChild(centerTr);
-  tbodynode.appendChild(getTemplateTr(3));
+  tbodynode.appendChild(getTileTemplateTr(3));
   return tablenode;
+}
+function getListExpanded(base) {
+  var linode;
+  if(typeIs("String", base)) {
+    linode = getListTemplateCopy().children[0];
+    var spannode = linode.children[0];
+    spannode.getElementsByTagName("TEXTAREA")[0].value = base;
+  } else linode = base;
+  var tmpl = getListTemplateCopy();
+  for(var i = 0; i < 7; i++) {
+    tmpl.appendChild(getListTemplateCopy().children[0]);
+  }
+  linode.appendChild(tmpl);
+  return linode;
 }
 //]]>
 </script>
 
-
 <!-- template -->
 <div style="display:none">
-<table id="_template">
+<table id="_tileTemplate">
 <tbody><tr>
 <td>
   <textarea rows="4" cols="18"></textarea>
   <div class="controls">
     <span class="expandButton button" style="display:inline"
-      onclick="onClickExpandButton(this)">
-      <svg width="28" height="28">
-        <rect width="28" height="28"
-          style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
-        <polyline points="28,0 28,28 0,28"
-          style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
-        <path d="M 4 4 L 12 4 L 12 6 Q 6 5 13 12 L 12 15 Q 5 6 6 12 L 4 12 Z"
-          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-        <path d="M 24 4 L 24 12 L 22 12 Q 23 6 16 13 L 15 12 Q 22 5 16 6 L 16 4 Z"
-          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-        <path d="M 24 24 L 16 24 L 16 22 Q 22 23 15 16 L 16 15 Q 23 22 22 16 L 24 16 Z"
-          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-        <path d="M 4 24 L 4 16 L 6 16 Q 5 22 12 15 L 13 16 Q 6 23 12 22 L 12 24 Z"
-          style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
-      </svg>
-    </span>
+      onclick="onClickTileExpandButton(this)"></span>
     <span class="shrinkButton button" style="display:none"
-      onclick="onClickShrinkButton(this)">
-      <svg width="28" height="28">
-        <rect width="28" height="28"
-          style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
-        <polyline points="28,0 28,28 0,28"
-          style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
-        <path d="M 4 4 L 5 4 Q 11 11 10 5 L 11 5 L 13 13 L 5 11 L 5 10 Q 11 11 4 5 Z"
-          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
-        <path d="M 24 4 L 24 5 Q 17 11 23 10 L 23 11 L 15 13 L 17 5 L 18 5 Q 17 11 23 4 Z"
-          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
-        <path d="M 24 24 L 23 24 Q 17 17 18 23 L 17 23 L 15 15 L 23 17 L 23 18 Q 17 17 24 23 Z"
-          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
-        <path d="M 4 24 L 4 23 Q 11 17 5 18 L 5 17 L 11 15 L 11 23 L 10 23 Q 11 17 5 24 Z"
-          style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
-      </svg>
-    </span>
+      onclick="onClickTileShrinkButton(this)"></span>
   </div>
 </td>
 </tr></tbody>
 </table>
+<ol id="_listTemplate">
+<li>
+  <span>
+    <textarea rows="1" cols="30"></textarea>
+    <span class="controls">
+      <span class="expandButton button" style="display:inline"
+        onclick="onClickListExpandButton(this)"></span>
+      <span class="shrinkButton button" style="display:none"
+        onclick="onClickListShrinkButton(this)"></span>
+    </span>
+  </span>
+</li>
+</ol>
+<svg id="_expandButtonImg" width="28" height="28">
+  <rect width="28" height="28"
+    style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
+  <polyline points="28,0 28,28 0,28"
+    style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
+  <path d="M 4 4 L 12 4 L 12 6 Q 6 5 13 12 L 12 15 Q 5 6 6 12 L 4 12 Z"
+    style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+  <path d="M 24 4 L 24 12 L 22 12 Q 23 6 16 13 L 15 12 Q 22 5 16 6 L 16 4 Z"
+    style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+  <path d="M 24 24 L 16 24 L 16 22 Q 22 23 15 16 L 16 15 Q 23 22 22 16 L 24 16 Z"
+    style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+  <path d="M 4 24 L 4 16 L 6 16 Q 5 22 12 15 L 13 16 Q 6 23 12 22 L 12 24 Z"
+    style="fill:rgb(219,142,0);stroke:rgb(219,142,0);stroke-width:1" />
+</svg>
+<svg id="_shrinkButtonImg" width="28" height="28">
+  <rect width="28" height="28"
+    style="fill:rgb(216,216,216);stroke:rgb(128,128,128);stroke-width:0" />
+  <polyline points="28,0 28,28 0,28"
+    style="fill:none;stroke:rgb(128,128,128);stroke-width:4" />
+  <path d="M 4 4 L 5 4 Q 11 11 10 5 L 11 5 L 13 13 L 5 11 L 5 10 Q 11 11 4 5 Z"
+    style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+  <path d="M 24 4 L 24 5 Q 17 11 23 10 L 23 11 L 15 13 L 17 5 L 18 5 Q 17 11 23 4 Z"
+    style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+  <path d="M 24 24 L 23 24 Q 17 17 18 23 L 17 23 L 15 15 L 23 17 L 23 18 Q 17 17 24 23 Z"
+    style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+  <path d="M 4 24 L 4 23 Q 11 17 5 18 L 5 17 L 11 15 L 11 23 L 10 23 Q 11 17 5 24 Z"
+    style="fill:rgb(67,84,149);stroke:rgb(67,84,149);stroke-width:1" />
+</svg>
 </div>
 
+<div id="mode"></div>
 <div id="menu">
 <ul>
 <!--
@@ -212,6 +292,14 @@ function getExpanded(base) {
 <li id="startNewMenuItem" onclick="onClickStartNewMenuItem()">
 start new
 </li>
+<li id="toggleModeMenuItem" onclick="onClickToggleModeMenuItem()">
+toggle mode
+</li>
+<!--
+<li id="linkMenuItem" onclick="displayPopup('linkList')">
+link
+</li>
+-->
 <li id="closeMenuButton" class="button"
   onclick="onClickCloseMenuButton(this, false)">
   <svg width="12" height="22">
@@ -246,6 +334,61 @@ start new
 
 <script>
 //<![CDATA[
+function clearChildNodes(node) {
+  for(var i = node.childNodes.length - 1; i >= 0; i--)
+    node.removeChild(node.childNodes[i]);
+}
+
+function setModeToTile() {
+  var modeNode = document.getElementById("mode");
+  clearChildNodes(modeNode);
+  modeNode.appendChild(document.createTextNode("TILE"));
+  modeNode.style.backgroundColor = "green";
+  var tileRoot = document.getElementById("_tileModeRoot");
+  var listRoot = document.getElementById("_listModeRoot");
+  tileRoot.style.display = "block";
+  listRoot.style.display = "none";
+}
+function setModeToList() {
+  var modeNode = document.getElementById("mode");
+  clearChildNodes(modeNode);
+  modeNode.appendChild(document.createTextNode("LIST"));
+  modeNode.style.backgroundColor = "blue";
+  var tileRoot = document.getElementById("_tileModeRoot");
+  var listRoot = document.getElementById("_listModeRoot");
+  tileRoot.style.display = "none";
+  listRoot.style.display = "block";
+}
+function modeClass(modeIdString, modeRootNodeDom) {
+  this.modeId = modeIdString;
+  this.modeRootNode = modeRootNodeDom;
+  this.modeIs = function(m) { return (m === this.modeId); };
+  this.isCurrent = function() {
+    return ((this.modeRootNode !== undefined) &&
+      (this.modeRootNode !== null) &&
+      (this.modeRootNode.style.display !== "none"));
+  };
+  this.getTemplate = function() { return document.createTextNode(""); };
+}
+function getMode(mode) {
+  var modeObj = new modeClass(mode, null);
+  if(modeObj.modeIs("tile")) {
+    modeObj.modeRootNode = document.getElementById("_tileModeRoot");
+    modeObj.getTemplate = getTileTemplateCopy;
+  } else if(modeObj.modeIs("list")) {
+    modeObj.modeRootNode = document.getElementById("_listModeRoot");
+    modeObj.getTemplate = getListTemplateCopy;
+  }
+  return modeObj;
+}
+function getCurrentMode() {
+  var modeObj = getMode("tile");
+  if(modeObj.isCurrent()) return modeObj;
+  modeObj = getMode("list");
+  if(modeObj.isCurrent()) return modeObj;
+  return new modeClass("", document.getElementById("_expandmemo"));
+}
+
 function onClickOpenMenuButton(btn, isClearInfo) {
   var menuUl = btn.parentNode;
   for(var i = 0; i < menuUl.children.length; i++) {
@@ -265,25 +408,24 @@ function onClickCloseMenuButton(btn, isClearInfo) {
   if(isClearInfo) clearInformation();
 }
 
-function clearChildNodes(node) {
-  for(var i = node.childNodes.length - 1; i >= 0; i--)
-    node.removeChild(node.childNodes[i]);
-}
-
 function onClickStartNewMenuItem() {
+  var mode = getCurrentMode();
+  var memoRoot = mode.modeRootNode;
   var doStartNewFunc =
     function(){
       var closeBtn = document.getElementById("closeMenuButton");
       onClickCloseMenuButton(closeBtn, true);
-      var memoRoot = document.getElementById("_expandmemo");
       clearChildNodes(memoRoot);
-      memoRoot.appendChild(getTemplateCopy());
+      memoRoot.appendChild(mode.getTemplate());
     };
-  var memoRoot = document.getElementById("_expandmemo");
   if(memoRoot.children.length > 0)
     displayPopup("messageBox", "if you start new, DELETE current memo data.",
       {"OK": doStartNewFunc});
   else doStartNewFunc();
+}
+function onClickToggleModeMenuItem() {
+  if(getCurrentMode().modeIs("tile")) setModeToList();
+  else if(getCurrentMode().modeIs("list")) setModeToTile();
 }
 
 function clearInformation() {
@@ -314,6 +456,12 @@ function addInformation(info) {
     <div class="messageArea"></div>
     <div class="controls"><ul></ul></div>
   </div>
+  <ul id="linkList">
+    <li><a href="http://www.mandal-art.com/" target="_blank">
+      original idea of &quot;MandalArt&quot;</a></li>
+    <li><a href="http://github.com/awazo/expandmemo" target="_blank">
+      repository of this html</a></li>
+  </ul>
 </div>
 
 <script>
@@ -391,6 +539,7 @@ function memoData(parentData) {
 <script>
 //<![CDATA[
 /*** initialize ***/
+setModeToTile();
 onClickCloseMenuButton(document.getElementById("closeMenuButton"), false);
 //]]>
 </script>
