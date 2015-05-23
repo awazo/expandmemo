@@ -12,6 +12,18 @@ table {
 div.controls {
   text-align: right;
 }
+div.controls ul {
+  list-style: none;
+  padding: 0px;
+  margin: 0px;
+}
+div.controls ul li {
+  display: inline;
+  padding: 0px 5px;
+  margin: 0px 2px;
+  background-color: rgb(71, 57, 70);
+  color: white;
+}
 *.button {
   background-color: transparent;
 }
@@ -75,22 +87,17 @@ ol {
   margin-top: -50px;
   margin-bottom: 30px;
 }
+#popup *:not(.button, .controls) { background-color: white; }
 #messageBox div.messageArea {
   background-color: white;
   padding: 5px 10px;
 }
-#messageBox div.controls ul {
-  list-style: none;
-  padding: 0px;
-  margin: 0px;
+#linkList {
+  list-style: disc inside;
+  padding: 5px 10px;
+  text-align: left;
 }
-#messageBox div.controls ul li {
-  display: inline;
-  padding: 0px 5px;
-  margin: 0px 2px;
-  background-color: rgb(71, 57, 70);
-  color: white;
-}
+#linkList li { margin: 5px 0px; }
 </style>
 <title>expandmemo</title>
 </head>
@@ -297,15 +304,17 @@ function getListExpanded(base) {
 <div id="mode"></div>
 <div id="menu">
 <ul>
-<!--
-<li id="menuItem" onclick="alert('menu item')">
-</li>
--->
 <li id="startNewMenuItem" onclick="onClickStartNewMenuItem()">
 start new
 </li>
 <li id="toggleModeMenuItem" onclick="onClickToggleModeMenuItem()">
 toggle mode
+</li>
+<li id="getTextMenuItem" onclick="onClickGetTextMenuItem()">
+get text
+</li>
+<li id="loadMenuItem" onclick="onClickLoadMenuItem()">
+load
 </li>
 <li id="linkMenuItem" onclick="displayPopup('linkList')">
 link
@@ -408,6 +417,13 @@ function getCurrentMode() {
   if(modeObj.isCurrent()) return modeObj;
   return new modeClass("", document.getElementById("_expandmemo"));
 }
+function getModeMemoData(modeObj) {
+  if(modeObj.modeIs("tile"))
+    return getMemoDataFromTileMode();
+  else if(modeObj.modeIs("list"))
+    return getMemoDataFromListMode();
+  return null;
+}
 
 function onClickOpenMenuButton(btn, isClearInfo) {
   var menuUl = btn.parentNode;
@@ -447,6 +463,25 @@ function onClickToggleModeMenuItem() {
   if(getCurrentMode().modeIs("tile")) setModeToList();
   else if(getCurrentMode().modeIs("list")) setModeToTile();
 }
+function onClickGetTextMenuItem() {
+  var memodata = getModeMemoData(getCurrentMode());
+  if(memodata === null) {
+    displayPopup("messageBox", "there is NO DATA to display.",
+      {"OK": function(){}});
+    return;
+  }
+  var listOut = memodata.toListString(0, "  ", "- ");
+  var jsonOut = memodata.toJsonString();
+  var extraData = {"displayClass": "outputBox",
+    "outHumanMsg": listOut, "outExmMsg": jsonOut};
+  displayPopup("textInterface", "", {"OK": function(){}}, extraData);
+}
+function onClickLoadMenuItem() {
+// TODO: implement
+  displayPopup("messageBox", "sorry, not yet implemented.", {"OK": function(){}});
+//  displayPopup("textInterface", "", {"LOAD": function() {
+//    }});
+}
 
 function clearInformation() {
   clearChildNodes(document.getElementById("informations"));
@@ -482,11 +517,31 @@ function addInformation(info) {
     <li><a href="http://github.com/awazo/expandmemo" target="_blank">
       repository of this html</a></li>
   </ul>
+  <div id="textInterface">
+    <div class="outputBox">
+      <textarea id="textOutHuman" rows="8" cols="50" style="display:block">
+      </textarea>
+      <textarea id="textOutExm" rows="8" cols="50" style="display:none">
+      </textarea>
+      <div class="controls"> choose type: 
+        <label><input type="radio" name="outputType" value="list" checked
+          onchange="showTextOutHuman()" />
+          human readable</label>
+        <label><input type="radio" name="outputType" value="json"
+          onchange="showTextOutExm()" />
+          expandmemo loadable</label>
+      </div>
+    </div>
+    <div class="inputBox">
+      <textarea rows="8" cols="50"></textarea>
+    </div>
+    <div class="controls"><ul></ul></div>
+  </div>
 </div>
 
 <script>
 //<![CDATA[
-function displayPopup(nodeId, msg, ctrls) {
+function displayPopup(nodeId, msg, ctrls, extraData) {
   var popupNode = document.getElementById("popup");
   popupNode.style.display = "flex";
   for(var i = 0; i < popupNode.children.length; i++)
@@ -498,11 +553,15 @@ function displayPopup(nodeId, msg, ctrls) {
   var content = document.getElementById(nodeId);
   var contentHeight = 0;
   if((content !== undefined) || (content !== null)) {
-    if(nodeId === "messageBox") setupMessageBox(content, msg, ctrls);
+    setupPopupContent(content, msg, ctrls, extraData);
     content.style.display = "block";
     contentHeight = closeButton.clientHeight + content.clientHeight;
   } else contentHeight = closeButton.clientHeight;
   var topPadding = (popupNode.clientHeight - contentHeight) / 2;
+  if(topPadding < 0) {
+    topPadding = 0;
+    popupNode.style.height = contentHeight;
+  }
   popupNode.style.paddingTop = topPadding + "px";
 }
 function closePopup() {
@@ -510,10 +569,14 @@ function closePopup() {
   popupNode.style.display = "none";
   popupNode.style.paddingTop = "0px";
 }
-function setupMessageBox(msgBoxNode, msg, ctrls) {
-  msgBoxNode.getElementsByClassName("messageArea")[0].innerHTML = msg;
-  var msgBoxCtrlsNode = msgBoxNode.getElementsByClassName("controls")[0];
-  var ctrlUl = msgBoxCtrlsNode.getElementsByTagName("UL")[0];
+function setupPopupContent(contentNode, msg, ctrls, extraData) {
+  if(contentNode.id === "messageBox")
+    setupMessageBox(contentNode, msg, ctrls, extraData);
+  else if(contentNode.id === "textInterface")
+    setupTextInterface(contentNode, msg, ctrls, extraData);
+}
+function setupPopupNodeControls(ctrlNode, ctrls) {
+  var ctrlUl = ctrlNode.getElementsByTagName("UL")[0];
   clearChildNodes(ctrlUl);
   for(var ctrlCap in ctrls) {
     var ctrlLi = document.createElement("LI");
@@ -523,13 +586,59 @@ function setupMessageBox(msgBoxNode, msg, ctrls) {
     ctrlUl.appendChild(ctrlLi);
   }
 }
+function setupMessageBox(msgBoxNode, msg, ctrls, extraData) {
+  msgBoxNode.getElementsByClassName("messageArea")[0].innerHTML = msg;
+  var msgBoxCtrlsNode = msgBoxNode.getElementsByClassName("controls")[0];
+  setupPopupNodeControls(msgBoxCtrlsNode, ctrls);
+}
+function setupTextInterface(textIfNode, msg, ctrls, extraData) {
+  var node;
+  var textIfCtrlsNode;
+  for(var i = 0; i < textIfNode.children.length; i++) {
+    if(textIfNode.children[i].classList.contains("controls")) {
+      textIfCtrlsNode = textIfNode.children[i];
+      continue;
+    }
+    if(textIfNode.children[i].classList.contains(extraData.displayClass)) {
+      textIfNode.children[i].style.display = "block";
+      node = textIfNode.children[i];
+    } else textIfNode.children[i].style.display = "none";
+  }
+  var textareaArr = node.getElementsByTagName("TEXTAREA");
+  for(var i= 0; i < textareaArr.length; i++)
+    if(textareaArr[i].style.display !== "none")
+      textareaArr[i].value = msg;
+  if(extraData.displayClass === "outputBox")
+    setupTextInterfaceOutputBox(node, extraData);
+  if(textIfCtrlsNode !== undefined)
+    setupPopupNodeControls(textIfCtrlsNode, ctrls);
+}
+function setupTextInterfaceOutputBox(outBoxNode, extraData) {
+  var textareaArr = outBoxNode.getElementsByTagName("TEXTAREA");
+  for(var i= 0; i < textareaArr.length; i++) {
+    if(textareaArr[i].id === "textOutHuman")
+      textareaArr[i].value = extraData.outHumanMsg;
+    else if(textareaArr[i].id === "textOutExm")
+      textareaArr[i].value = extraData.outExmMsg;
+  }
+  var ctrls = outBoxNode.getElementsByClassName("controls")[0];
+  ctrls.getElementsByTagName("INPUT")[0].click();
+}
+function showTextOutHuman() {
+  document.getElementById("textOutHuman").style.display = "block";
+  document.getElementById("textOutExm").style.display = "none";
+}
+function showTextOutExm() {
+  document.getElementById("textOutHuman").style.display = "none";
+  document.getElementById("textOutExm").style.display = "block";
+}
 //]]>
 </script>
 
 <script>
 //<![CDATA[
 /*** data structure ***/
-function memoData(parentData) {
+function memoDataClass(parentData) {
   this.parentMemo = parentData;
   this.childMemoArray = [];
   this.memoText = "";
@@ -547,11 +656,29 @@ function memoData(parentData) {
   this.fromJsonObject = function(jsonObject) {
     this.memoText = jsonObject.memoText;
     for(var i = 0; i < jsonObject.childMemoArray.length; i++) {
-      var child = new memoData(this);
+      var child = new memoDataClass(this);
       child.fromJsonObject(jsonObject.childMemoArray[i]);
       this.childMemoArray.push(child);
     }
     return this;
+  };
+  this.toListString = function(level, indentFactor, listThumb) {
+    var listString = "";
+    var indentString = "";
+    for(var i = 0; i < level; i++) indentString += indentFactor;
+    var altListThumb = "";
+    for(var i = 0; i < indentFactor.length; i++) altListThumb += " ";
+    var lines = this.memoText.split("\n");
+    for(var i = 0; i < lines.length; i++)
+      if(i === 0) listString += indentString + listThumb + lines[i];
+      else listString += "\n" + indentString + altListThumb + lines[i];
+    var childList = [];
+    for(var i = 0; i < this.childMemoArray.length; i++)
+      childList.push(this.childMemoArray[i].toListString(level + 1,
+        indentFactor, listThumb));
+    if(childList.length > 0)
+      listString += "\n" + childList.join("\n");
+    return listString;
   };
 }
 
@@ -581,7 +708,7 @@ function getMemoDataFromTileMode() {
   var tileRoot = document.getElementById("_tileModeRoot");
   if(tileRoot.children.length <= 0) return null;
   var walkTileTree = function(tileNode) {
-    var memoNode = new memoData(null);
+    var memoNode = new memoDataClass(null);
     memoNode.memoText = getTileTextNode(tileNode).value;
     if(hasTileChild(tileNode)) {
       var childArr = getTileChildren(tileNode);
@@ -635,7 +762,7 @@ function getMemoDataFromListMode() {
   var listRoot = document.getElementById("_listModeRoot");
   if(listRoot.children.length <= 0) return null;
   var walkListTree = function(listNode) {
-    var memoNode = new memoData(null);
+    var memoNode = new memoDataClass(null);
     memoNode.memoText = getListTextNode(listNode).value;
     if(hasListChild(listNode)) {
       var childArr = getListChildren(listNode);
