@@ -31,6 +31,9 @@ div.controls ul li {
   background-color: rgb(71, 57, 70);
   color: white;
 }
+div.subcontrols {
+  background-color: rgb(192, 192, 192);
+}
 *.button {
   background-color: transparent;
 }
@@ -564,7 +567,7 @@ function addInformation(info) {
       </textarea>
       <textarea id="textOutExm" rows="8" cols="50" style="display:none">
       </textarea>
-      <div class="controls"> choose type: 
+      <div class="controls subcontrols"> choose type: 
         <label><input type="radio" name="outputType" value="list" checked
           onchange="showTextOutHuman()" />
           human readable</label>
