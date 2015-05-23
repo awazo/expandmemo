@@ -13,6 +13,9 @@ div.messageArea {
   background-color: white;
   padding: 5px 10px;
 }
+div.annotation {
+  background-color: rgb(163, 186, 205);
+}
 div.controls {
   text-align: right;
 }
@@ -470,6 +473,7 @@ function onClickStartNewMenuItem() {
   else doStartNewFunc();
 }
 function onClickToggleModeMenuItem() {
+  clickCloseMenuButton(false);
   if(getCurrentMode().modeIs("tile")) setModeToList();
   else if(getCurrentMode().modeIs("list")) setModeToTile();
 }
@@ -561,7 +565,7 @@ function addInformation(info) {
       </div>
     </div>
     <div class="inputBox">
-      <div class="messageArea"></div>
+      <div class="messageArea annotation"></div>
       <textarea rows="8" cols="50"></textarea>
     </div>
     <div class="controls"><ul></ul></div>
