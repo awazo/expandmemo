@@ -99,6 +99,7 @@ ol {
   list-style: disc inside;
   padding: 5px 10px;
   text-align: left;
+  background-color: white;
 }
 #linkList li { margin: 5px 0px; }
 </style>
@@ -467,7 +468,8 @@ function onClickStartNewMenuItem() {
       clearChildNodes(memoRoot);
       memoRoot.appendChild(mode.getTemplate());
     };
-  if(memoRoot.children.length > 0)
+  var memodata = getModeMemoData(mode);
+  if((memodata !== null) && !(memodata.isEmpty()))
     displayPopup("messageBox", "if you start new, DELETE current memo data.",
       {"OK": doStartNewFunc});
   else doStartNewFunc();
@@ -478,18 +480,21 @@ function onClickToggleModeMenuItem() {
   else if(getCurrentMode().modeIs("list")) setModeToTile();
 }
 function onClickGetTextMenuItem() {
-  clickCloseMenuButton(false);
   var memodata = getModeMemoData(getCurrentMode());
   if(memodata === null) {
     displayPopup("messageBox", "there is NO DATA to display.",
-      {"OK": function(){}});
+      {"OK": function(){
+        clickCloseMenuButton(false);
+      }});
     return;
   }
   var listOut = memodata.toListString(0, "  ", "- ");
   var jsonOut = memodata.toJsonString();
   var extraData = {"displayClass": "outputBox",
     "outHumanMsg": listOut, "outExmMsg": jsonOut};
-  displayPopup("textInterface", "", {"OK": function(){}}, extraData);
+  displayPopup("textInterface", "", {"OK": function(){
+    clickCloseMenuButton(false);
+  }}, extraData);
 }
 function onClickLoadMenuItem() {
   var msg = "input that shown in ";
@@ -501,6 +506,10 @@ function onClickLoadMenuItem() {
       var inbox = txtif.getElementsByClassName("inputBox")[0];
       var inboxTextarea = inbox.getElementsByTagName("TEXTAREA")[0];
       var inboxText = inboxTextarea.value;
+      if(inboxText.length <= 0) {
+        addInformation("there is NO DATA to load.");
+        return;
+      }
       var memodata = new memoDataClass(null);
       memodata.fromJsonObject(JSON.parse(inboxText));
       setModeMemoData(getCurrentMode(), memodata);
@@ -596,11 +605,15 @@ function displayPopup(nodeId, msg, ctrls, extraData) {
     popupNode.style.height = contentHeight;
   }
   popupNode.style.paddingTop = topPadding + "px";
+  popupNode.style.marginLeft = window.pageXOffset + "px";
+  popupNode.style.marginTop = window.pageYOffset + "px";
 }
 function closePopup() {
   var popupNode = document.getElementById("popup");
   popupNode.style.display = "none";
   popupNode.style.paddingTop = "0px";
+  popupNode.style.marginLeft = "0px";
+  popupNode.style.marginTop = "0px";
 }
 function setupPopupContent(contentNode, msg, ctrls, extraData) {
   if(contentNode.id === "messageBox")
@@ -677,6 +690,15 @@ function memoDataClass(parentData) {
   this.childMemoArray = [];
   this.memoText = "";
   this.hasChild = function() { return (this.childMemoArray.length > 0); };
+  this.isEmpty = function() {
+    var isempty = (this.memoText.length <= 0);
+    if(!isempty) return false;
+    if(this.hasChild()) {
+      for(var i = 0; i < this.childMemoArray.length; i++)
+        if(!(this.childMemoArray[i].isEmpty())) return false;
+      return true;
+    } else return isempty;
+  };
   this.toJsonString = function() {
     var childrenJson = "";
     for(var i = 0; i < this.childMemoArray.length; i++) {
