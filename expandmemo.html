@@ -9,6 +9,10 @@ body { padding-top: 20px; }
 table {
   border: solid 1px black;
 }
+div.messageArea {
+  background-color: white;
+  padding: 5px 10px;
+}
 div.controls {
   text-align: right;
 }
@@ -84,14 +88,10 @@ ol {
   align-items: center;
 }
 #closePopupButton {
-  margin-top: -50px;
-  margin-bottom: 30px;
+  margin-top: -20px;
+  margin-bottom: 20px;
 }
 #popup *:not(.button, .controls) { background-color: white; }
-#messageBox div.messageArea {
-  background-color: white;
-  padding: 5px 10px;
-}
 #linkList {
   list-style: disc inside;
   padding: 5px 10px;
@@ -424,6 +424,13 @@ function getModeMemoData(modeObj) {
     return getMemoDataFromListMode();
   return null;
 }
+function setModeMemoData(modeObj, memoData) {
+  clearChildNodes(modeObj.modeRootNode);
+  if(modeObj.modeIs("tile"))
+    modeObj.modeRootNode.appendChild(getTileFromMemoData(memoData));
+  else if(modeObj.modeIs("list"))
+    modeObj.modeRootNode.appendChild(getListFromMemoData(memoData));
+}
 
 function onClickOpenMenuButton(btn, isClearInfo) {
   var menuUl = btn.parentNode;
@@ -443,14 +450,17 @@ function onClickCloseMenuButton(btn, isClearInfo) {
   menuUl.style.marginLeft = "0px";
   if(isClearInfo) clearInformation();
 }
+function clickCloseMenuButton(isClearInfo) {
+  var closeBtn = document.getElementById("closeMenuButton");
+  onClickCloseMenuButton(closeBtn, isClearInfo);
+}
 
 function onClickStartNewMenuItem() {
   var mode = getCurrentMode();
   var memoRoot = mode.modeRootNode;
   var doStartNewFunc =
     function(){
-      var closeBtn = document.getElementById("closeMenuButton");
-      onClickCloseMenuButton(closeBtn, true);
+      clickCloseMenuButton(true);
       clearChildNodes(memoRoot);
       memoRoot.appendChild(mode.getTemplate());
     };
@@ -464,6 +474,7 @@ function onClickToggleModeMenuItem() {
   else if(getCurrentMode().modeIs("list")) setModeToTile();
 }
 function onClickGetTextMenuItem() {
+  clickCloseMenuButton(false);
   var memodata = getModeMemoData(getCurrentMode());
   if(memodata === null) {
     displayPopup("messageBox", "there is NO DATA to display.",
@@ -477,10 +488,26 @@ function onClickGetTextMenuItem() {
   displayPopup("textInterface", "", {"OK": function(){}}, extraData);
 }
 function onClickLoadMenuItem() {
-// TODO: implement
-  displayPopup("messageBox", "sorry, not yet implemented.", {"OK": function(){}});
-//  displayPopup("textInterface", "", {"LOAD": function() {
-//    }});
+  var msg = "input that shown in ";
+  msg += "&quot;get text&quot; -&gt; &quot;expandmemo loadable&quot;";
+  var loadFunc = function() {
+    clickCloseMenuButton(true);
+    try {
+      var txtif = document.getElementById("textInterface");
+      var inbox = txtif.getElementsByClassName("inputBox")[0];
+      var inboxTextarea = inbox.getElementsByTagName("TEXTAREA")[0];
+      var inboxText = inboxTextarea.value;
+      var memodata = new memoDataClass(null);
+      memodata.fromJsonObject(JSON.parse(inboxText));
+      setModeMemoData(getCurrentMode(), memodata);
+      inboxTextarea.value = "";
+    } catch(exc) {
+      addInformation("ERROR: load failed. may be wrong data type.");
+      addInformation(exc.toString());
+    }
+  };
+  displayPopup("textInterface", msg,
+    {"LOAD": loadFunc}, {"displayClass": "inputBox"});
 }
 
 function clearInformation() {
@@ -489,7 +516,8 @@ function clearInformation() {
 function addInformation(info) {
   var infoNode = document.getElementById("informations");
   if(typeIs("String", info)) {
-    infoNode.appendChild(document.createElement("BR"));
+    if(infoNode.childNodes.length > 0)
+      infoNode.appendChild(document.createElement("BR"));
     infoNode.appendChild(document.createTextNode(info));
   } else infoNode.appendChild(info);
 }
@@ -533,6 +561,7 @@ function addInformation(info) {
       </div>
     </div>
     <div class="inputBox">
+      <div class="messageArea"></div>
       <textarea rows="8" cols="50"></textarea>
     </div>
     <div class="controls"><ul></ul></div>
@@ -604,14 +633,15 @@ function setupTextInterface(textIfNode, msg, ctrls, extraData) {
       node = textIfNode.children[i];
     } else textIfNode.children[i].style.display = "none";
   }
-  var textareaArr = node.getElementsByTagName("TEXTAREA");
-  for(var i= 0; i < textareaArr.length; i++)
-    if(textareaArr[i].style.display !== "none")
-      textareaArr[i].value = msg;
-  if(extraData.displayClass === "outputBox")
-    setupTextInterfaceOutputBox(node, extraData);
+  var msgarea = node.getElementsByClassName("messageArea");
+  if(msgarea.length > 0) msgarea[0].innerHTML = msg;
+  setupTextInterfaceInnerNodes(node, extraData);
   if(textIfCtrlsNode !== undefined)
     setupPopupNodeControls(textIfCtrlsNode, ctrls);
+}
+function setupTextInterfaceInnerNodes(innerNode, extraData) {
+  if(extraData.displayClass === "outputBox")
+    setupTextInterfaceOutputBox(innerNode, extraData);
 }
 function setupTextInterfaceOutputBox(outBoxNode, extraData) {
   var textareaArr = outBoxNode.getElementsByTagName("TEXTAREA");
@@ -650,8 +680,9 @@ function memoDataClass(parentData) {
       if(i < (this.childMemoArray.length - 1))
         childrenJson += ", ";
     }
-    return "{'memoText': '" + this.memoText +
-      "', 'childMemoArray': [" + childrenJson + "]}";
+    var txt = this.memoText.split("\n").join("\\n");
+    return '{"memoText": "' + txt +
+      '", "childMemoArray": [' + childrenJson + ']}';
   };
   this.fromJsonObject = function(jsonObject) {
     this.memoText = jsonObject.memoText;
